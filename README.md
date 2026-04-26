@@ -1,76 +1,56 @@
-# Payroll E2E Environment (Java + RabbitMQ)
+# Payroll Portal Client + E2E Environment
 
-Este repositório define um ambiente de execução **somente com componentes Java/Spring Boot + RabbitMQ** para validar o fluxo E2E de geração de folha.
+Este projeto agora contém:
 
-> Importante: as telas Flutter e a implementação do app cliente **não fazem parte deste repositório**. Aqui está apenas o ambiente de serviços para testar integração fim-a-fim (auth -> orquestração -> processamento assíncrono -> consulta -> download de PDF).
+1. **Ambiente E2E de microsserviços** via Docker Compose (Java + RabbitMQ).
+2. **Código das telas do cliente web** para executar o fluxo ponta a ponta.
+3. **Teste E2E de interface** com Playwright cobrindo login -> geração -> status -> eventos -> download.
 
-## Componentes
+## Componentes suportados no fluxo
 
 - sboot-security-base-auth-service
 - sboot-security-base-api-gateway
 - boot-payroll-orchestrator-service
 - payroll-generation-request-publisher
+- RabbitMQ
 - sboot-payroll-generation-processor
 - sboot-payroll-validation-service
 - sboot-payroll-calculation-service
-- sboot-payroll-events-service
-- sboot-payroll-query-service
 - sboot-data-employe-serice
 - sboot-data-company-serice
 - sboot-time-tracking-integration-service
-- RabbitMQ
+- sboot-payroll-events-service
+- sboot-payroll-query-service
 
-> Observação: `sboot-security-base-api-gateway` foi informado duas vezes na lista original; no compose ele está declarado uma única vez.
+## Estrutura
 
-## Pré-requisitos
+- `docker-compose.e2e.yml`: sobe os serviços do fluxo de folha
+- `scripts/e2e-smoke.sh`: smoke test de integração backend
+- `index.html` + `src/*`: telas e lógica do cliente web
+- `tests/e2e/*`: teste E2E de tela com Playwright
 
-- Docker
-- Docker Compose v2
-- `curl` e `jq` (para o script de smoke test)
-- Imagens publicadas dos serviços com o padrão:
-  - `local/<service-name>:latest` (padrão)
-  - ou ajuste `IMAGE_PREFIX` e `IMAGE_TAG`
+## Executar telas localmente
 
-## Subir ambiente
+```bash
+python3 -m http.server 4173
+# abrir http://localhost:4173
+```
+
+## Executar teste E2E de telas
+
+```bash
+npm install
+npm run test:e2e
+```
+
+## Executar smoke test backend
 
 ```bash
 docker compose -f docker-compose.e2e.yml up -d
-```
-
-## Executar smoke test E2E
-
-O script `scripts/e2e-smoke.sh` executa o fluxo completo:
-
-1. aguarda o API Gateway ficar saudável,
-2. autentica no endpoint de auth,
-3. solicita geração da folha,
-4. faz polling no status até concluir,
-5. realiza download do PDF gerado.
-
-```bash
 ./scripts/e2e-smoke.sh
 ```
 
-### Variáveis úteis (opcionais)
+## Observações
 
-```bash
-AUTH_USER=admin \
-AUTH_PASS=admin \
-GATEWAY_URL=http://localhost:8080 \
-AUTH_ENDPOINT=/api/auth/login \
-GENERATE_ENDPOINT=/api/payroll/generate \
-STATUS_ENDPOINT=/api/payroll/status \
-DOWNLOAD_ENDPOINT=/api/payroll/download \
-EMPLOYEE_ID=123 \
-COMPANY_ID=10 \
-PERIOD=2026-03 \
-MAX_POLL_ATTEMPTS=30 \
-POLL_INTERVAL_SECONDS=2 \
-./scripts/e2e-smoke.sh
-```
-
-## Derrubar ambiente
-
-```bash
-docker compose -f docker-compose.e2e.yml down -v
-```
+- O cliente web chama o API Gateway em `http://localhost:8080` por padrão.
+- Para customizar a URL, defina `window.PAYROLL_GATEWAY_URL` antes de carregar `src/main.js`.
