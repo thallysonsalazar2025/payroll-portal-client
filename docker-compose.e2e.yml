@@ -1,0 +1,220 @@
+name: payroll-e2e
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-payroll}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-payroll123}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - payroll-net
+
+  sboot-security-base-auth-service:
+    image: ${IMAGE_PREFIX:-local/}sboot-security-base-auth-service:${IMAGE_TAG:-latest}
+    container_name: sboot-security-base-auth-service
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+    networks:
+      - payroll-net
+
+  sboot-security-base-api-gateway:
+    image: ${IMAGE_PREFIX:-local/}sboot-security-base-api-gateway:${IMAGE_TAG:-latest}
+    container_name: sboot-security-base-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      AUTH_SERVICE_BASE_URL: http://sboot-security-base-auth-service:8080
+      PAYROLL_ORCHESTRATOR_BASE_URL: http://boot-payroll-orchestrator-service:8080
+      PAYROLL_QUERY_BASE_URL: http://sboot-payroll-query-service:8080
+      PAYROLL_EVENTS_BASE_URL: http://sboot-payroll-events-service:8080
+    depends_on:
+      - sboot-security-base-auth-service
+      - boot-payroll-orchestrator-service
+      - sboot-payroll-query-service
+    networks:
+      - payroll-net
+
+  sboot-data-employe-serice:
+    image: ${IMAGE_PREFIX:-local/}sboot-data-employe-serice:${IMAGE_TAG:-latest}
+    container_name: sboot-data-employe-serice
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+    networks:
+      - payroll-net
+
+  sboot-data-company-serice:
+    image: ${IMAGE_PREFIX:-local/}sboot-data-company-serice:${IMAGE_TAG:-latest}
+    container_name: sboot-data-company-serice
+    ports:
+      - "8083:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+    networks:
+      - payroll-net
+
+  sboot-time-tracking-integration-service:
+    image: ${IMAGE_PREFIX:-local/}sboot-time-tracking-integration-service:${IMAGE_TAG:-latest}
+    container_name: sboot-time-tracking-integration-service
+    ports:
+      - "8084:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+    networks:
+      - payroll-net
+
+  sboot-payroll-validation-service:
+    image: ${IMAGE_PREFIX:-local/}sboot-payroll-validation-service:${IMAGE_TAG:-latest}
+    container_name: sboot-payroll-validation-service
+    ports:
+      - "8085:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      EMPLOYEE_SERVICE_BASE_URL: http://sboot-data-employe-serice:8080
+      COMPANY_SERVICE_BASE_URL: http://sboot-data-company-serice:8080
+      TIME_TRACKING_BASE_URL: http://sboot-time-tracking-integration-service:8080
+    depends_on:
+      - sboot-data-employe-serice
+      - sboot-data-company-serice
+      - sboot-time-tracking-integration-service
+    networks:
+      - payroll-net
+
+  sboot-payroll-calculation-service:
+    image: ${IMAGE_PREFIX:-local/}sboot-payroll-calculation-service:${IMAGE_TAG:-latest}
+    container_name: sboot-payroll-calculation-service
+    ports:
+      - "8086:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      EMPLOYEE_SERVICE_BASE_URL: http://sboot-data-employe-serice:8080
+      COMPANY_SERVICE_BASE_URL: http://sboot-data-company-serice:8080
+      TIME_TRACKING_BASE_URL: http://sboot-time-tracking-integration-service:8080
+    depends_on:
+      - sboot-data-employe-serice
+      - sboot-data-company-serice
+      - sboot-time-tracking-integration-service
+    networks:
+      - payroll-net
+
+  payroll-generation-request-publisher:
+    image: ${IMAGE_PREFIX:-local/}payroll-generation-request-publisher:${IMAGE_TAG:-latest}
+    container_name: payroll-generation-request-publisher
+    ports:
+      - "8087:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-payroll}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-payroll123}
+      PAYROLL_REQUEST_EXCHANGE: payroll.request.exchange
+      PAYROLL_REQUEST_ROUTING_KEY: payroll.request
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - payroll-net
+
+  sboot-payroll-generation-processor:
+    image: ${IMAGE_PREFIX:-local/}sboot-payroll-generation-processor:${IMAGE_TAG:-latest}
+    container_name: sboot-payroll-generation-processor
+    ports:
+      - "8088:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-payroll}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-payroll123}
+      PAYROLL_REQUEST_QUEUE: payroll.request.queue
+      PAYROLL_VALIDATION_BASE_URL: http://sboot-payroll-validation-service:8080
+      PAYROLL_CALCULATION_BASE_URL: http://sboot-payroll-calculation-service:8080
+      PAYROLL_EVENTS_BASE_URL: http://sboot-payroll-events-service:8080
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      sboot-payroll-validation-service:
+        condition: service_started
+      sboot-payroll-calculation-service:
+        condition: service_started
+      sboot-payroll-events-service:
+        condition: service_started
+    networks:
+      - payroll-net
+
+  sboot-payroll-events-service:
+    image: ${IMAGE_PREFIX:-local/}sboot-payroll-events-service:${IMAGE_TAG:-latest}
+    container_name: sboot-payroll-events-service
+    ports:
+      - "8089:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-payroll}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-payroll123}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - payroll-net
+
+  sboot-payroll-query-service:
+    image: ${IMAGE_PREFIX:-local/}sboot-payroll-query-service:${IMAGE_TAG:-latest}
+    container_name: sboot-payroll-query-service
+    ports:
+      - "8090:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      PAYROLL_EVENTS_BASE_URL: http://sboot-payroll-events-service:8080
+    depends_on:
+      - sboot-payroll-events-service
+    networks:
+      - payroll-net
+
+  boot-payroll-orchestrator-service:
+    image: ${IMAGE_PREFIX:-local/}boot-payroll-orchestrator-service:${IMAGE_TAG:-latest}
+    container_name: boot-payroll-orchestrator-service
+    ports:
+      - "8091:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      AUTH_SERVICE_BASE_URL: http://sboot-security-base-auth-service:8080
+      PUBLISHER_BASE_URL: http://payroll-generation-request-publisher:8080
+      QUERY_SERVICE_BASE_URL: http://sboot-payroll-query-service:8080
+    depends_on:
+      - sboot-security-base-auth-service
+      - payroll-generation-request-publisher
+      - sboot-payroll-query-service
+    networks:
+      - payroll-net
+
+networks:
+  payroll-net:
+    driver: bridge
