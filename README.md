@@ -1,56 +1,54 @@
-# Payroll Portal Client + E2E Environment
+# Payroll Portal Client em Flutter
 
-Este projeto agora contém:
 
-1. **Ambiente E2E de microsserviços** via Docker Compose (Java + RabbitMQ).
-2. **Código das telas do cliente web** para executar o fluxo ponta a ponta.
-3. **Teste E2E de interface** com Playwright cobrindo login -> geração -> status -> eventos -> download.
+## Fluxo suportado
 
-## Componentes suportados no fluxo
-
-- sboot-security-base-auth-service
-- sboot-security-base-api-gateway
-- boot-payroll-orchestrator-service
-- payroll-generation-request-publisher
-- RabbitMQ
-- sboot-payroll-generation-processor
-- sboot-payroll-validation-service
-- sboot-payroll-calculation-service
-- sboot-data-employe-serice
-- sboot-data-company-serice
-- sboot-time-tracking-integration-service
-- sboot-payroll-events-service
-- sboot-payroll-query-service
+- login no gateway
+- geracao de holerite
+- consulta de status
+- consulta de eventos
+- download do PDF
 
 ## Estrutura
 
-- `docker-compose.e2e.yml`: sobe os serviços do fluxo de folha
-- `scripts/e2e-smoke.sh`: smoke test de integração backend
-- `index.html` + `src/*`: telas e lógica do cliente web
-- `tests/e2e/*`: teste E2E de tela com Playwright
+- `lib/`: app Flutter
+- `web/`: bootstrap web
+- `test/`: testes de widget
+- `docker-compose.e2e.yml`: ambiente de apoio do ecossistema
+- `scripts/e2e-smoke.sh`: smoke test backend
 
-## Executar telas localmente
+## Configuracao do gateway
 
-```bash
-python3 -m http.server 4173
-# abrir http://localhost:4173
-```
+Por padrao o app aponta para:
 
-## Executar teste E2E de telas
+- `http://localhost:8080`
 
-```bash
-npm install
-npm run test:e2e
-```
-
-## Executar smoke test backend
+Para trocar a URL em runtime:
 
 ```bash
-docker compose -f docker-compose.e2e.yml up -d
-./scripts/e2e-smoke.sh
+flutter run -d chrome --dart-define=PAYROLL_GATEWAY_URL=http://localhost:8080
 ```
 
-## Observações
+## Executar localmente
 
-- O cliente web chama o API Gateway em `http://localhost:8080` por padrão.
-- Para customizar a URL, defina `window.PAYROLL_GATEWAY_URL` antes de carregar `src/main.js`.
+```bash
+flutter pub get
+flutter run -d chrome
+```
+
+Ou no ambiente atual do Windows:
+
+```powershell
+.\scripts\run-web.ps1
+```
+
+## Gerar build web
+
+```bash
+flutter build web
+```
+
+## Observacoes
+
+- Neste ambiente atual eu nao encontrei o SDK do Flutter instalado, entao a refatoracao foi preparada no codigo, mas nao validada com `flutter run`.
+- O backend continua sendo Java, e o gateway em `8080` segue como ponto unico de entrada da interface.

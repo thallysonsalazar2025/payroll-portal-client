@@ -215,6 +215,18 @@ services:
     networks:
       - payroll-net
 
+  payroll-portal-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payroll-portal-client
+    ports:
+      - "80:80"
+    environment:
+      - PAYROLL_GATEWAY_URL=http://localhost:8080
+    networks:
+      - payroll-net
+
 networks:
   payroll-net:
     driver: bridge
