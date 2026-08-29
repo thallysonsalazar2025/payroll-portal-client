@@ -9,13 +9,38 @@ const env = {
 
 const state = { token: null, requestId: null };
 
+export class ApiError extends Error {
+  constructor(status, path, body) {
+    const message = ApiError.messageFor(status);
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.path = path;
+  }
+
+  static messageFor(status) {
+    if (status === 401) return 'Sua sessão expirou ou as credenciais são inválidas. Autentique-se novamente.';
+    if (status === 403) return 'Você não tem permissão para executar esta operação.';
+    if (status === 404) return 'O recurso solicitado ainda não foi encontrado.';
+    if (status === 409) return 'A operação entrou em conflito com o estado atual. Atualize e tente novamente.';
+    if (status === 422) return 'Os dados enviados não puderam ser processados. Revise os campos informados.';
+    if (status >= 500) return 'O serviço está temporariamente indisponível. Tente novamente em instantes.';
+    return `Não foi possível concluir a operação (HTTP ${status}).`;
+  }
+}
+
 async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (state.token && !headers.Authorization) headers.Authorization = `Bearer ${state.token}`;
-  const res = await fetch(`${env.gatewayUrl}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${env.gatewayUrl}${path}`, { ...options, headers });
+  } catch (error) {
+    throw new Error('Não foi possível conectar ao serviço. Verifique a rede e tente novamente.', { cause: error });
+  }
   const contentType = res.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await res.json() : await res.text();
-  if (!res.ok) throw new Error(`HTTP ${res.status} em ${path}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
+  if (!res.ok) throw new ApiError(res.status, path, body);
   return body;
 }
 
@@ -37,8 +62,14 @@ export async function getPayrollStatus(params) { return request(`${env.statusEnd
 export async function getPayrollEvents(params) { return request(`${env.eventsEndpoint}?${new URLSearchParams(params)}`); }
 
 export async function downloadPayrollPdf(params) {
-  const res = await fetch(`${env.gatewayUrl}${env.downloadEndpoint}?${new URLSearchParams(params)}`, { headers: { Authorization: `Bearer ${state.token}` } });
-  if (!res.ok) throw new Error(`Falha no download: HTTP ${res.status}`);
+  if (!state.token) throw new Error('Autentique-se antes de baixar o PDF.');
+  let res;
+  try {
+    res = await fetch(`${env.gatewayUrl}${env.downloadEndpoint}?${new URLSearchParams(params)}`, { headers: { Authorization: `Bearer ${state.token}` } });
+  } catch (error) {
+    throw new Error('Não foi possível conectar ao serviço para baixar o PDF.', { cause: error });
+  }
+  if (!res.ok) throw new ApiError(res.status, env.downloadEndpoint, null);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
