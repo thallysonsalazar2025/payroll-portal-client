@@ -5,6 +5,8 @@ const env = {
   statusEndpoint: '/api/payroll/status',
   downloadEndpoint: '/api/payroll/download',
   eventsEndpoint: '/api/payroll/events',
+  preValidateClosingEndpoint: '/api/payroll/closing/pre-validate',
+  closePayrollEndpoint: '/api/payroll/closing',
 };
 
 const state = { token: null, requestId: null };
@@ -60,6 +62,14 @@ export async function generatePayroll(payload) {
 
 export async function getPayrollStatus(params) { return request(`${env.statusEndpoint}?${new URLSearchParams(params)}`); }
 export async function getPayrollEvents(params) { return request(`${env.eventsEndpoint}?${new URLSearchParams(params)}`); }
+
+export async function preValidatePayrollClosing(payload) {
+  return request(env.preValidateClosingEndpoint, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function closePayroll(payload) {
+  return request(env.closePayrollEndpoint, { method: 'POST', body: JSON.stringify(payload) });
+}
 
 export async function downloadPayrollPdf(params) {
   if (!state.token) throw new Error('Autentique-se antes de baixar o PDF.');
