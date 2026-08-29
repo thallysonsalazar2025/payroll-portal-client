@@ -1,0 +1,27 @@
+name: Portal CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: node --check src/api.js && node --check src/main.js
+      - name: Validate required portal assets
+        run: test -f index.html && test -f src/api.js && test -f src/main.js && test -f src/styles.css
+      - name: Validate portal compose overlay
+        run: docker compose -f docker-compose.e2e.yml -f docker-compose.portal.yml config >/dev/null
+      - name: Build portal image
+        run: docker build -t payroll-portal-client:ci .
