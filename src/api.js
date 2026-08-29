@@ -20,6 +20,7 @@ async function request(path, options = {}) {
 }
 
 export async function login(username, password) {
+  state.token = null;
   const body = await request(env.authEndpoint, { method: 'POST', body: JSON.stringify({ username, password }) });
   state.token = body.access_token || body.token || body.jwt;
   if (!state.token) throw new Error('Token não encontrado na resposta de autenticação.');
@@ -42,7 +43,7 @@ export async function downloadPayrollPdf(params) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `payroll-${params.requestId || params.employeeId}-${params.period}.pdf`;
+  a.download = `payroll-${params.requestId || params.employeeId}-${params.period || 'generated'}.pdf`;
   a.click();
   URL.revokeObjectURL(url);
   return blob.size;
