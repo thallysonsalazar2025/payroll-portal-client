@@ -1,5 +1,5 @@
 const env = {
-  gatewayUrl: window.PAYROLL_GATEWAY_URL || '',
+  gatewayUrl: window.PAYROLL_GATEWAY_URL ?? (window.location.port === '4173' ? 'http://localhost:8080' : ''),
   authEndpoint: '/api/auth/login',
   generateEndpoint: '/api/payroll/generate',
   statusEndpoint: '/api/payroll/status',
