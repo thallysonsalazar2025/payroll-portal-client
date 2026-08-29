@@ -2,6 +2,7 @@ import { login, generatePayroll, getPayrollStatus, getPayrollEvents, downloadPay
 
 const app = document.querySelector('#app');
 let requestId = '';
+let generatedPeriod = '';
 
 function log(message, type = 'info') {
   const row = document.createElement('p');
@@ -25,9 +26,9 @@ const payrollParams = () => {
 };
 
 document.querySelector('#login-form').addEventListener('submit', async e => { e.preventDefault(); const d = new FormData(e.target); try { await login(d.get('username'), d.get('password')); log('Autenticação realizada.', 'ok'); } catch (err) { log(err.message, 'err'); } });
-document.querySelector('#generate-form').addEventListener('submit', async e => { e.preventDefault(); try { const result = await generatePayroll(payrollParams()); requestId = result.requestId || result.id || ''; document.querySelector('#request-id').textContent = `requestId: ${requestId || 'não retornado'}`; log('Geração enviada.', 'ok'); } catch (err) { log(err.message, 'err'); } });
+document.querySelector('#generate-form').addEventListener('submit', async e => { e.preventDefault(); try { const params = payrollParams(); const result = await generatePayroll(params); requestId = result.requestId || result.id || ''; generatedPeriod = params.period; document.querySelector('#request-id').textContent = `requestId: ${requestId || 'não retornado'}`; log('Geração enviada.', 'ok'); } catch (err) { log(err.message, 'err'); } });
 document.querySelector('#status-btn').addEventListener('click', async () => { try { const p = payrollParams(); const status = await getPayrollStatus(requestId ? { requestId } : { employeeId: p.employeeId, period: p.period }); document.querySelector('#status-output').textContent = JSON.stringify(status, null, 2); log('Status consultado.', 'ok'); } catch (err) { log(err.message, 'err'); } });
 document.querySelector('#events-btn').addEventListener('click', async () => { if (!requestId) return log('Gere uma folha antes de consultar eventos.', 'err'); try { const events = await getPayrollEvents({ requestId }); document.querySelector('#status-output').textContent = JSON.stringify(events, null, 2); log('Eventos consultados.', 'ok'); } catch (err) { log(err.message, 'err'); } });
-document.querySelector('#download-btn').addEventListener('click', async () => { try { const p = payrollParams(); const size = await downloadPayrollPdf(requestId ? { requestId, period: p.period } : { employeeId: p.employeeId, period: p.period }); log(`PDF baixado com ${size} bytes.`, 'ok'); } catch (err) { log(err.message, 'err'); } });
+document.querySelector('#download-btn').addEventListener('click', async () => { try { const p = payrollParams(); const downloadParams = requestId ? { requestId } : { employeeId: p.employeeId, period: p.period }; const size = await downloadPayrollPdf(downloadParams); log(`PDF baixado com ${size} bytes${generatedPeriod ? ` para ${generatedPeriod}` : ''}.`, 'ok'); } catch (err) { log(err.message, 'err'); } });
 
 log('Portal inicializado.', 'info');
