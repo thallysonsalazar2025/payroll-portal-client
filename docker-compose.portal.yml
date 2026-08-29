@@ -1,0 +1,12 @@
+services:
+  payroll-portal-client:
+    build:
+      context: .
+    container_name: payroll-portal-client
+    ports:
+      - "4173:80"
+    depends_on:
+      sboot-security-base-api-gateway:
+        condition: service_started
+    networks:
+      - payroll-net
