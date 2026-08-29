@@ -11,6 +11,11 @@ const env = {
 
 const state = { token: null, requestId: null };
 
+function clearSession() {
+  state.token = null;
+  state.requestId = null;
+}
+
 export class ApiError extends Error {
   constructor(status, path, body) {
     const message = ApiError.messageFor(status);
@@ -42,12 +47,15 @@ async function request(path, options = {}) {
   }
   const contentType = res.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await res.json() : await res.text();
-  if (!res.ok) throw new ApiError(res.status, path, body);
+  if (!res.ok) {
+    if (res.status === 401) clearSession();
+    throw new ApiError(res.status, path, body);
+  }
   return body;
 }
 
 export async function login(username, password) {
-  state.token = null;
+  clearSession();
   const body = await request(env.authEndpoint, { method: 'POST', body: JSON.stringify({ username, password }) });
   state.token = body.access_token || body.token || body.jwt;
   if (!state.token) throw new Error('Token não encontrado na resposta de autenticação.');
@@ -79,7 +87,10 @@ export async function downloadPayrollPdf(params) {
   } catch (error) {
     throw new Error('Não foi possível conectar ao serviço para baixar o PDF.', { cause: error });
   }
-  if (!res.ok) throw new ApiError(res.status, env.downloadEndpoint, null);
+  if (!res.ok) {
+    if (res.status === 401) clearSession();
+    throw new ApiError(res.status, env.downloadEndpoint, null);
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
