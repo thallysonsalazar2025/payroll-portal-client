@@ -3,7 +3,7 @@ services:
     build:
       context: .
     container_name: payroll-portal-client
-    ports:
+    ports: !override
       - "4173:80"
     depends_on:
       sboot-security-base-api-gateway:
