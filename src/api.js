@@ -1,5 +1,5 @@
 const env = {
-  gatewayUrl: window.PAYROLL_GATEWAY_URL || 'http://localhost:8080',
+  gatewayUrl: window.PAYROLL_GATEWAY_URL || '',
   authEndpoint: '/api/auth/login',
   generateEndpoint: '/api/payroll/generate',
   statusEndpoint: '/api/payroll/status',
