@@ -7,6 +7,7 @@ const env = {
   eventsEndpoint: '/api/payroll/events',
   preValidateClosingEndpoint: '/api/payroll/closing/pre-validate',
   closePayrollEndpoint: '/api/payroll/closing',
+  requestTimeoutMs: Number(window.PAYROLL_REQUEST_TIMEOUT_MS ?? 15000),
 };
 
 const state = { token: null, requestId: null };
@@ -14,6 +15,23 @@ const state = { token: null, requestId: null };
 function clearSession() {
   state.token = null;
   state.requestId = null;
+}
+
+function timeoutMessage() {
+  return 'A operação demorou mais que o esperado. Verifique a rede e tente novamente.';
+}
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), env.requestTimeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error(timeoutMessage(), { cause: error });
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export class ApiError extends Error {
@@ -41,8 +59,9 @@ async function request(path, options = {}) {
   if (state.token && !headers.Authorization) headers.Authorization = `Bearer ${state.token}`;
   let res;
   try {
-    res = await fetch(`${env.gatewayUrl}${path}`, { ...options, headers });
+    res = await fetchWithTimeout(`${env.gatewayUrl}${path}`, { ...options, headers });
   } catch (error) {
+    if (error?.cause?.name === 'AbortError') throw error;
     throw new Error('Não foi possível conectar ao serviço. Verifique a rede e tente novamente.', { cause: error });
   }
   const contentType = res.headers.get('content-type') || '';
@@ -83,8 +102,9 @@ export async function downloadPayrollPdf(params) {
   if (!state.token) throw new Error('Autentique-se antes de baixar o PDF.');
   let res;
   try {
-    res = await fetch(`${env.gatewayUrl}${env.downloadEndpoint}?${new URLSearchParams(params)}`, { headers: { Authorization: `Bearer ${state.token}` } });
+    res = await fetchWithTimeout(`${env.gatewayUrl}${env.downloadEndpoint}?${new URLSearchParams(params)}`, { headers: { Authorization: `Bearer ${state.token}` } });
   } catch (error) {
+    if (error?.cause?.name === 'AbortError') throw error;
     throw new Error('Não foi possível conectar ao serviço para baixar o PDF.', { cause: error });
   }
   if (!res.ok) {
