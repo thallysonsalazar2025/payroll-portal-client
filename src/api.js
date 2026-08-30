@@ -98,6 +98,10 @@ export async function closePayroll(payload) {
   return request(env.closePayrollEndpoint, { method: 'POST', body: JSON.stringify(payload) });
 }
 
+export async function syncTimeClockEvents(items) {
+  return request('/api/time-clock/events/sync', { method: 'POST', body: JSON.stringify(items) });
+}
+
 export async function downloadPayrollPdf(params) {
   if (!state.token) throw new Error('Autentique-se antes de baixar o PDF.');
   let res;
