@@ -1,0 +1,8 @@
+{
+  "name": "Payroll Portal Ponto",
+  "short_name": "Ponto",
+  "start_url": "./point.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+}
