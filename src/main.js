@@ -7,6 +7,7 @@ import {
   preValidatePayrollClosing,
   closePayroll
 } from './api.js';
+import { normalizePayrollStatus, pollPayrollStatus } from './polling.js';
 
 const app = document.querySelector('#app');
 let requestId = '';
@@ -48,6 +49,7 @@ const closingParams = () => {
   return { companyId: data.get('companyId'), competence: data.get('competence') };
 };
 
+const statusOutput = document.querySelector('#status-output');
 const closingOutput = document.querySelector('#closing-output');
 const closePayrollButton = document.querySelector('#close-payroll-btn');
 const validateClosingButton = document.querySelector('#validate-closing-btn');
@@ -57,10 +59,27 @@ function setClosingBusy(busy) {
   if (busy) closePayrollButton.disabled = true;
 }
 
+async function trackGeneratedPayroll(params) {
+  const statusParams = requestId ? { requestId } : { employeeId: params.employeeId, period: params.period };
+  try {
+    const result = await pollPayrollStatus(getPayrollStatus, statusParams);
+    statusOutput.textContent = JSON.stringify(result.payload, null, 2);
+    const status = normalizePayrollStatus(result.payload) || 'DESCONHECIDO';
+    if (result.terminal) {
+      const type = ['FAILED', 'ERROR', 'REJECTED', 'CANCELLED', 'CANCELED'].includes(status) ? 'err' : 'ok';
+      log(`Processamento finalizado em ${result.attempts} consulta(s): ${status}.`, type);
+    } else {
+      log(`Processamento ainda não terminou após ${result.attempts} consultas. Use Consultar status para continuar.`, 'info');
+    }
+  } catch (err) {
+    log(`Acompanhamento automático interrompido: ${err.message}`, 'err');
+  }
+}
+
 document.querySelector('#login-form').addEventListener('submit', async e => { e.preventDefault(); const d = new FormData(e.target); try { await login(d.get('username'), d.get('password')); log('Autenticação realizada.', 'ok'); } catch (err) { log(err.message, 'err'); } });
-document.querySelector('#generate-form').addEventListener('submit', async e => { e.preventDefault(); try { const params = payrollParams(); const result = await generatePayroll(params); requestId = result.requestId || result.id || ''; generatedPeriod = params.period; document.querySelector('#request-id').textContent = `requestId: ${requestId || 'não retornado'}`; log('Geração enviada.', 'ok'); } catch (err) { log(err.message, 'err'); } });
-document.querySelector('#status-btn').addEventListener('click', async () => { try { const p = payrollParams(); const status = await getPayrollStatus(requestId ? { requestId } : { employeeId: p.employeeId, period: p.period }); document.querySelector('#status-output').textContent = JSON.stringify(status, null, 2); log('Status consultado.', 'ok'); } catch (err) { log(err.message, 'err'); } });
-document.querySelector('#events-btn').addEventListener('click', async () => { if (!requestId) return log('Gere uma folha antes de consultar eventos.', 'err'); try { const events = await getPayrollEvents({ requestId }); document.querySelector('#status-output').textContent = JSON.stringify(events, null, 2); log('Eventos consultados.', 'ok'); } catch (err) { log(err.message, 'err'); } });
+document.querySelector('#generate-form').addEventListener('submit', async e => { e.preventDefault(); try { const params = payrollParams(); const result = await generatePayroll(params); requestId = result.requestId || result.id || ''; generatedPeriod = params.period; document.querySelector('#request-id').textContent = `requestId: ${requestId || 'não retornado'}`; log('Geração enviada. Acompanhando processamento automaticamente.', 'ok'); void trackGeneratedPayroll(params); } catch (err) { log(err.message, 'err'); } });
+document.querySelector('#status-btn').addEventListener('click', async () => { try { const p = payrollParams(); const status = await getPayrollStatus(requestId ? { requestId } : { employeeId: p.employeeId, period: p.period }); statusOutput.textContent = JSON.stringify(status, null, 2); log('Status consultado.', 'ok'); } catch (err) { log(err.message, 'err'); } });
+document.querySelector('#events-btn').addEventListener('click', async () => { if (!requestId) return log('Gere uma folha antes de consultar eventos.', 'err'); try { const events = await getPayrollEvents({ requestId }); statusOutput.textContent = JSON.stringify(events, null, 2); log('Eventos consultados.', 'ok'); } catch (err) { log(err.message, 'err'); } });
 document.querySelector('#download-btn').addEventListener('click', async () => { try { const p = payrollParams(); const downloadParams = requestId ? { requestId } : { employeeId: p.employeeId, period: p.period }; const size = await downloadPayrollPdf(downloadParams); log(`PDF baixado com ${size} bytes${generatedPeriod ? ` para ${generatedPeriod}` : ''}.`, 'ok'); } catch (err) { log(err.message, 'err'); } });
 
 validateClosingButton.addEventListener('click', async () => {
