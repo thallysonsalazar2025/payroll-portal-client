@@ -37,6 +37,11 @@ app.innerHTML = `
     <pre id="closing-output" aria-live="polite"></pre>
   </article>
 </section>
+<section class="card" aria-labelledby="privacy-title">
+  <h2 id="privacy-title">Privacidade e transparência</h2>
+  <p>Consulte como o portal apresenta finalidade, direitos e limites do tratamento. A leitura deste aviso não é tratada como consentimento.</p>
+  <a href="privacy.html">Abrir aviso de transparência — versão 2026-08-30.v1</a>
+</section>
 <section class="card"><h2>Logs E2E</h2><div id="log-panel"></div></section>`;
 
 const payrollParams = () => {
