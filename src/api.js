@@ -65,13 +65,21 @@ export async function login(username, password) {
   return body;
 }
 
+export function getAuthenticatedCompanyId() {
+  if (!state.token) return null;
+  const claims = decodeJwtPayload(state.token);
+  const companyId = String(claims?.companyId ?? '').trim();
+  return companyId || null;
+}
+
 export function getAuthenticatedPointScope() {
   if (!state.token) return null;
   const claims = decodeJwtPayload(state.token);
-  if (!claims?.companyId) return null;
-  const principal = claims.employeeId || claims.sub;
+  const companyId = getAuthenticatedCompanyId();
+  if (!companyId) return null;
+  const principal = claims?.employeeId || claims?.sub;
   if (!principal) return null;
-  return `${claims.companyId}:${principal}`;
+  return `${companyId}:${principal}`;
 }
 
 export async function generatePayroll(payload) { const body = await request(env.generateEndpoint, { method: 'POST', body: JSON.stringify(payload) }); state.requestId = body.requestId || body.id || null; return body; }
