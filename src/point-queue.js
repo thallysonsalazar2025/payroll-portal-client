@@ -7,9 +7,7 @@ function openDb() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'clientEventId' });
-      }
+      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: 'clientEventId' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -21,13 +19,7 @@ function transaction(mode, operation) {
     const tx = db.transaction(STORE_NAME, mode);
     const store = tx.objectStore(STORE_NAME);
     let result;
-    try {
-      result = operation(store);
-    } catch (error) {
-      db.close();
-      reject(error);
-      return;
-    }
+    try { result = operation(store); } catch (error) { db.close(); reject(error); return; }
     tx.oncomplete = () => { db.close(); resolve(result); };
     tx.onerror = () => { db.close(); reject(tx.error); };
     tx.onabort = () => { db.close(); reject(tx.error); };
@@ -37,14 +29,7 @@ function transaction(mode, operation) {
 export async function enqueueClockEvent(employeeId) {
   const normalizedEmployeeId = String(employeeId ?? '').trim();
   if (!normalizedEmployeeId) throw new Error('Funcionário é obrigatório para registrar a marcação.');
-
-  const event = {
-    clientEventId: crypto.randomUUID(),
-    employeeId: normalizedEmployeeId,
-    occurredAt: new Date().toISOString(),
-    status: 'PENDING'
-  };
-
+  const event = { clientEventId: crypto.randomUUID(), employeeId: normalizedEmployeeId, occurredAt: new Date().toISOString(), status: 'PENDING' };
   await transaction('readwrite', store => store.add(event));
   return event;
 }
@@ -64,11 +49,9 @@ export async function syncPendingClockEvents(sendBatch) {
   const events = await listClockEvents();
   const pending = events.filter(event => event.status === 'PENDING');
   if (pending.length === 0) return [];
-
   const payload = pending.map(({ clientEventId, employeeId, occurredAt }) => ({ clientEventId, employeeId, occurredAt }));
   const results = await sendBatch(payload);
   if (!Array.isArray(results)) throw new Error('Resposta de sincronização inválida.');
-
   const byId = new Map(results.map(result => [result.clientEventId, result]));
   const db = await openDb();
   await new Promise((resolve, reject) => {
@@ -78,7 +61,7 @@ export async function syncPendingClockEvents(sendBatch) {
       const result = byId.get(event.clientEventId);
       if (!result) continue;
       if (result.status === 'CREATED' || result.status === 'EXISTING') {
-        store.delete(event.clientEventId);
+        store.put({ ...event, status: 'SYNCED', serverStatus: result.status, synchronizedAt: new Date().toISOString(), receiptId: result.eventId || result.id || event.clientEventId });
       } else if (result.status === 'REJECTED') {
         store.put({ ...event, status: 'REJECTED', rejectionReason: result.reason || 'Marcação rejeitada pelo servidor.' });
       }
