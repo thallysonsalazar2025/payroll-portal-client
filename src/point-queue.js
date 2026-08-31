@@ -50,8 +50,10 @@ export async function syncPendingClockEvents(sendBatch, scope) {
     const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME);
     for (const event of pending) {
       const result = byId.get(event.clientEventId); if (!result) continue;
-      if (result.status === 'CREATED' || result.status === 'EXISTING') store.put({ ...event, status: 'SYNCED', serverStatus: result.status, synchronizedAt: new Date().toISOString(), receiptId: result.eventId || result.id || event.clientEventId });
-      else if (result.status === 'REJECTED') store.put({ ...event, status: 'REJECTED', rejectionReason: result.reason || 'Marcação rejeitada pelo servidor.' });
+      if (result.status === 'CREATED' || result.status === 'EXISTING') {
+        const serverReceivedAt = typeof result.serverReceivedAt === 'string' && result.serverReceivedAt.trim() ? result.serverReceivedAt : null;
+        store.put({ ...event, status: 'SYNCED', serverStatus: result.status, synchronizedAt: new Date().toISOString(), serverReceivedAt, receiptId: result.eventId || result.id || event.clientEventId });
+      } else if (result.status === 'REJECTED') store.put({ ...event, status: 'REJECTED', rejectionReason: result.reason || 'Marcação rejeitada pelo servidor.' });
     }
     tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
   });
