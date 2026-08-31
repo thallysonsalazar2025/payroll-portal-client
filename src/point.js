@@ -10,7 +10,10 @@ const syncButton = document.querySelector('#sync-point-btn');
 function setStatus(message, type = 'info') { statusOutput.textContent = message; statusOutput.className = `log-${type}`; }
 function scope() { return getAuthenticatedPointScope(); }
 function describeEvent(event) {
-  if (event.status === 'SYNCED') return `${event.occurredAt} — SINCRONIZADA — comprovante ${event.receiptId} — servidor ${event.serverStatus} — sincronizada em ${event.synchronizedAt}`;
+  if (event.status === 'SYNCED') {
+    const serverObservation = event.serverReceivedAt ? ` — recebido pelo servidor ${event.serverReceivedAt}` : '';
+    return `${event.occurredAt} — SINCRONIZADA — comprovante ${event.receiptId} — servidor ${event.serverStatus}${serverObservation} — sincronizada em ${event.synchronizedAt}`;
+  }
   if (event.status === 'REJECTED') return `${event.occurredAt} — REJEITADA — ${event.clientEventId} — ${event.rejectionReason}`;
   return `${event.occurredAt} — ${event.status} — ${event.clientEventId}`;
 }
