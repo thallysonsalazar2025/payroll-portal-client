@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { reconcileSyncResult, toSyncPayload } from '../src/point-queue.js';
+import { indexSyncResults, reconcileSyncResult, toSyncPayload } from '../src/point-queue.js';
 
 const localEvent = {
   clientEventId: '11111111-1111-4111-8111-111111111111',
@@ -61,5 +61,16 @@ const mismatched = reconcileSyncResult(localEvent, {
   status: 'CREATED'
 }, synchronizedAt);
 assert.strictEqual(mismatched, localEvent);
+
+const indexed = indexSyncResults([localEvent], [{ clientEventId: localEvent.clientEventId, status: 'CREATED' }]);
+assert.equal(indexed.get(localEvent.clientEventId)?.status, 'CREATED');
+assert.throws(() => indexSyncResults([localEvent], [
+  { clientEventId: localEvent.clientEventId, status: 'CREATED' },
+  { clientEventId: localEvent.clientEventId, status: 'EXISTING' }
+]), /inconsistente/);
+assert.throws(() => indexSyncResults([localEvent], [
+  { clientEventId: '33333333-3333-4333-8333-333333333333', status: 'CREATED' }
+]), /inconsistente/);
+assert.throws(() => indexSyncResults([localEvent], [{ status: 'CREATED' }]), /inconsistente/);
 
 console.log('point queue payload + reconciliation contract: PASS');

@@ -55,6 +55,20 @@ export function reconcileSyncResult(event, result, synchronizedAt = new Date().t
   return event;
 }
 
+export function indexSyncResults(pendingEvents, results) {
+  if (!Array.isArray(results)) throw new Error('Resposta de sincronização inválida.');
+  const pendingIds = new Set((pendingEvents ?? []).map(event => event?.clientEventId).filter(Boolean));
+  const byId = new Map();
+  for (const result of results) {
+    const clientEventId = typeof result?.clientEventId === 'string' ? result.clientEventId.trim() : '';
+    if (!clientEventId || !pendingIds.has(clientEventId) || byId.has(clientEventId)) {
+      throw new Error('Resposta de sincronização inconsistente.');
+    }
+    byId.set(clientEventId, result);
+  }
+  return byId;
+}
+
 export async function enqueueClockEvent(employeeId, scope) {
   const ownerScope = requireScope(scope); const normalizedEmployeeId = String(employeeId ?? '').trim();
   if (!normalizedEmployeeId) throw new Error('Funcionário é obrigatório para registrar a marcação.');
@@ -75,8 +89,7 @@ export async function syncPendingClockEvents(sendBatch, scope) {
   const ownerScope = requireScope(scope); const events = await listClockEvents(ownerScope); const pending = events.filter(event => event.status === 'PENDING');
   if (pending.length === 0) return [];
   const payload = pending.map(toSyncPayload);
-  const results = await sendBatch(payload); if (!Array.isArray(results)) throw new Error('Resposta de sincronização inválida.');
-  const byId = new Map(results.map(result => [result.clientEventId, result])); const db = await openDb();
+  const results = await sendBatch(payload); const byId = indexSyncResults(pending, results); const db = await openDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME);
     for (const event of pending) {
