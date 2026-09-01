@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { indexSyncResults, reconcileSyncResult, toSyncPayload } from '../src/point-queue.js';
+import { indexSyncResults, reconcileSyncResult, runSingleFlight, toSyncPayload } from '../src/point-queue.js';
 
 const localEvent = {
   clientEventId: '11111111-1111-4111-8111-111111111111',
@@ -18,6 +18,28 @@ assert.deepEqual(toSyncPayload(localEvent), {
   occurredAt: localEvent.occurredAt
 });
 assert.deepEqual(Object.keys(toSyncPayload(localEvent)).sort(), ['clientEventId', 'employeeId', 'occurredAt'].sort());
+
+let releaseFirstFlight;
+let operationCalls = 0;
+const firstFlight = runSingleFlight('tenant-a:user-1', async () => {
+  operationCalls += 1;
+  await new Promise(resolve => { releaseFirstFlight = resolve; });
+  return 'first-result';
+});
+const duplicateFlight = runSingleFlight('tenant-a:user-1', async () => {
+  operationCalls += 1;
+  return 'must-not-run';
+});
+assert.strictEqual(duplicateFlight, firstFlight);
+await Promise.resolve();
+assert.equal(operationCalls, 1);
+releaseFirstFlight();
+assert.equal(await duplicateFlight, 'first-result');
+assert.equal(await runSingleFlight('tenant-a:user-1', async () => {
+  operationCalls += 1;
+  return 'second-result';
+}), 'second-result');
+assert.equal(operationCalls, 2);
 
 const synchronizedAt = '2026-09-01T03:00:00.000Z';
 const created = reconcileSyncResult(localEvent, {
@@ -73,4 +95,4 @@ assert.throws(() => indexSyncResults([localEvent], [
 ]), /inconsistente/);
 assert.throws(() => indexSyncResults([localEvent], [{ status: 'CREATED' }]), /inconsistente/);
 
-console.log('point queue payload + reconciliation contract: PASS');
+console.log('point queue payload + single-flight + reconciliation contract: PASS');
