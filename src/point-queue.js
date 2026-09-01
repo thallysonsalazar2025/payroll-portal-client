@@ -24,6 +24,11 @@ function transaction(mode, operation) {
   }));
 }
 
+export function toSyncPayload(event) {
+  const { clientEventId, employeeId, occurredAt } = event ?? {};
+  return { clientEventId, employeeId, occurredAt };
+}
+
 export async function enqueueClockEvent(employeeId, scope) {
   const ownerScope = requireScope(scope); const normalizedEmployeeId = String(employeeId ?? '').trim();
   if (!normalizedEmployeeId) throw new Error('Funcionário é obrigatório para registrar a marcação.');
@@ -43,7 +48,7 @@ export async function listClockEvents(scope) {
 export async function syncPendingClockEvents(sendBatch, scope) {
   const ownerScope = requireScope(scope); const events = await listClockEvents(ownerScope); const pending = events.filter(event => event.status === 'PENDING');
   if (pending.length === 0) return [];
-  const payload = pending.map(({ clientEventId, employeeId, occurredAt }) => ({ clientEventId, employeeId, occurredAt }));
+  const payload = pending.map(toSyncPayload);
   const results = await sendBatch(payload); if (!Array.isArray(results)) throw new Error('Resposta de sincronização inválida.');
   const byId = new Map(results.map(result => [result.clientEventId, result])); const db = await openDb();
   await new Promise((resolve, reject) => {
