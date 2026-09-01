@@ -29,6 +29,32 @@ export function toSyncPayload(event) {
   return { clientEventId, employeeId, occurredAt };
 }
 
+export function reconcileSyncResult(event, result, synchronizedAt = new Date().toISOString()) {
+  if (!event || !result || result.clientEventId !== event.clientEventId) return event;
+
+  if (result.status === 'CREATED' || result.status === 'EXISTING') {
+    const serverReceivedAt = typeof result.serverReceivedAt === 'string' && result.serverReceivedAt.trim() ? result.serverReceivedAt : null;
+    return {
+      ...event,
+      status: 'SYNCED',
+      serverStatus: result.status,
+      synchronizedAt,
+      serverReceivedAt,
+      receiptId: result.eventId || result.id || event.clientEventId
+    };
+  }
+
+  if (result.status === 'REJECTED') {
+    return {
+      ...event,
+      status: 'REJECTED',
+      rejectionReason: result.reason || 'Marcação rejeitada pelo servidor.'
+    };
+  }
+
+  return event;
+}
+
 export async function enqueueClockEvent(employeeId, scope) {
   const ownerScope = requireScope(scope); const normalizedEmployeeId = String(employeeId ?? '').trim();
   if (!normalizedEmployeeId) throw new Error('Funcionário é obrigatório para registrar a marcação.');
@@ -55,10 +81,8 @@ export async function syncPendingClockEvents(sendBatch, scope) {
     const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME);
     for (const event of pending) {
       const result = byId.get(event.clientEventId); if (!result) continue;
-      if (result.status === 'CREATED' || result.status === 'EXISTING') {
-        const serverReceivedAt = typeof result.serverReceivedAt === 'string' && result.serverReceivedAt.trim() ? result.serverReceivedAt : null;
-        store.put({ ...event, status: 'SYNCED', serverStatus: result.status, synchronizedAt: new Date().toISOString(), serverReceivedAt, receiptId: result.eventId || result.id || event.clientEventId });
-      } else if (result.status === 'REJECTED') store.put({ ...event, status: 'REJECTED', rejectionReason: result.reason || 'Marcação rejeitada pelo servidor.' });
+      const reconciled = reconcileSyncResult(event, result);
+      if (reconciled !== event) store.put(reconciled);
     }
     tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
   });
