@@ -41,6 +41,20 @@ assert.equal(await runSingleFlight('tenant-a:user-1', async () => {
 }), 'second-result');
 assert.equal(operationCalls, 2);
 
+let failureCalls = 0;
+await assert.rejects(
+  runSingleFlight('tenant-a:user-failure', async () => {
+    failureCalls += 1;
+    throw new Error('backend unavailable');
+  }),
+  /backend unavailable/
+);
+assert.equal(await runSingleFlight('tenant-a:user-failure', async () => {
+  failureCalls += 1;
+  return 'retry-result';
+}), 'retry-result');
+assert.equal(failureCalls, 2);
+
 const synchronizedAt = '2026-09-01T03:00:00.000Z';
 const created = reconcileSyncResult(localEvent, {
   clientEventId: localEvent.clientEventId,
@@ -95,4 +109,4 @@ assert.throws(() => indexSyncResults([localEvent], [
 ]), /inconsistente/);
 assert.throws(() => indexSyncResults([localEvent], [{ status: 'CREATED' }]), /inconsistente/);
 
-console.log('point queue payload + single-flight + reconciliation contract: PASS');
+console.log('point queue payload + single-flight + failure retry + reconciliation contract: PASS');
