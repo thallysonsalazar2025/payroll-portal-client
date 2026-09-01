@@ -1,6 +1,7 @@
 const DB_NAME = 'payroll-point-offline';
 const STORE_NAME = 'clock-events';
 const DB_VERSION = 1;
+const syncFlights = new Map();
 
 function requireScope(scope) {
   const normalized = String(scope ?? '').trim();
@@ -22,6 +23,17 @@ function transaction(mode, operation) {
     try { result = operation(store); } catch (error) { db.close(); reject(error); return; }
     tx.oncomplete = () => { db.close(); resolve(result); }; tx.onerror = () => { db.close(); reject(tx.error); }; tx.onabort = () => { db.close(); reject(tx.error); };
   }));
+}
+
+export function runSingleFlight(scope, operation) {
+  const key = requireScope(scope);
+  if (syncFlights.has(key)) return syncFlights.get(key);
+
+  const flight = Promise.resolve().then(operation).finally(() => {
+    if (syncFlights.get(key) === flight) syncFlights.delete(key);
+  });
+  syncFlights.set(key, flight);
+  return flight;
 }
 
 export function toSyncPayload(event) {
@@ -86,18 +98,21 @@ export async function listClockEvents(scope) {
 }
 
 export async function syncPendingClockEvents(sendBatch, scope) {
-  const ownerScope = requireScope(scope); const events = await listClockEvents(ownerScope); const pending = events.filter(event => event.status === 'PENDING');
-  if (pending.length === 0) return [];
-  const payload = pending.map(toSyncPayload);
-  const results = await sendBatch(payload); const byId = indexSyncResults(pending, results); const db = await openDb();
-  await new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME);
-    for (const event of pending) {
-      const result = byId.get(event.clientEventId); if (!result) continue;
-      const reconciled = reconcileSyncResult(event, result);
-      if (reconciled !== event) store.put(reconciled);
-    }
-    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
+  const ownerScope = requireScope(scope);
+  return runSingleFlight(ownerScope, async () => {
+    const events = await listClockEvents(ownerScope); const pending = events.filter(event => event.status === 'PENDING');
+    if (pending.length === 0) return [];
+    const payload = pending.map(toSyncPayload);
+    const results = await sendBatch(payload); const byId = indexSyncResults(pending, results); const db = await openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME);
+      for (const event of pending) {
+        const result = byId.get(event.clientEventId); if (!result) continue;
+        const reconciled = reconcileSyncResult(event, result);
+        if (reconciled !== event) store.put(reconciled);
+      }
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
+    });
+    db.close(); return results;
   });
-  db.close(); return results;
 }
