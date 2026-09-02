@@ -1,4 +1,4 @@
-const CACHE_NAME = 'payroll-point-shell-v3';
+const CACHE_NAME = 'payroll-point-shell-v4';
 const SHELL = ['./point.html','./src/styles.css','./src/api.js','./src/point.js','./src/point-queue.js','./manifest.webmanifest'];
 
 self.addEventListener('install', event => {

@@ -1,11 +1,12 @@
 import { login, syncTimeClockEvents, getAuthenticatedPointScope } from './api.js';
-import { enqueueClockEvent, listClockEvents, syncPendingClockEvents } from './point-queue.js';
+import { enqueueClockEvent, listClockEvents, syncPendingClockEvents, selectRecentSyncedReceipts, formatReceiptExport } from './point-queue.js';
 
 const loginForm = document.querySelector('#point-login-form');
 const clockForm = document.querySelector('#clock-form');
 const queueOutput = document.querySelector('#queue-output');
 const statusOutput = document.querySelector('#point-status');
 const syncButton = document.querySelector('#sync-point-btn');
+const exportButton = document.querySelector('#export-point-receipts-btn');
 
 function setStatus(message, type = 'info') { statusOutput.textContent = message; statusOutput.className = `log-${type}`; }
 function scope() { return getAuthenticatedPointScope(); }
@@ -36,6 +37,22 @@ async function syncQueue() {
   } catch (error) { setStatus(`Sincronização não concluída: ${error.message}`, 'err'); }
 }
 
+async function exportRecentReceipts() {
+  const authenticatedScope = scope();
+  if (!authenticatedScope) return setStatus('Autentique-se antes de extrair comprovantes.', 'info');
+  const events = await listClockEvents(authenticatedScope);
+  const receipts = selectRecentSyncedReceipts(events, new Date(), 48);
+  if (!receipts.length) return setStatus('Não há comprovantes sincronizados nas últimas 48 horas neste dispositivo.', 'info');
+  const blob = new Blob([formatReceiptExport(receipts)], { type: 'text/tab-separated-values;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `comprovantes-ponto-48h-${new Date().toISOString().slice(0, 10)}.tsv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus(`${receipts.length} comprovante(s) local(is) das últimas 48 horas exportado(s).`, 'ok');
+}
+
 loginForm.addEventListener('submit', async event => {
   event.preventDefault(); const data = new FormData(event.currentTarget);
   try {
@@ -54,6 +71,8 @@ clockForm.addEventListener('submit', async event => {
   } catch (error) { setStatus(error.message, 'err'); }
 });
 
-syncButton.addEventListener('click', syncQueue); window.addEventListener('online', syncQueue);
+syncButton.addEventListener('click', syncQueue);
+exportButton.addEventListener('click', () => exportRecentReceipts().catch(error => setStatus(error.message, 'err')));
+window.addEventListener('online', syncQueue);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => setStatus('Fila offline ativa; cache PWA indisponível.', 'err'));
 renderQueue().catch(error => setStatus(error.message, 'err'));
