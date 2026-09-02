@@ -81,6 +81,26 @@ export function indexSyncResults(pendingEvents, results) {
   return byId;
 }
 
+export function selectRecentSyncedReceipts(events, now = new Date(), hours = 48) {
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  if (!Number.isFinite(nowMs)) throw new Error('Horário de referência inválido.');
+  const windowMs = hours * 60 * 60 * 1000;
+  return (events ?? []).filter(event => {
+    if (event?.status !== 'SYNCED') return false;
+    const occurredAtMs = Date.parse(event.occurredAt);
+    return Number.isFinite(occurredAtMs) && occurredAtMs <= nowMs && occurredAtMs >= nowMs - windowMs;
+  });
+}
+
+export function formatReceiptExport(events) {
+  return (events ?? []).map(event => [
+    event.occurredAt,
+    event.receiptId ?? event.clientEventId,
+    event.serverStatus ?? '',
+    event.serverReceivedAt ?? ''
+  ].join('\t')).join('\n');
+}
+
 export async function enqueueClockEvent(employeeId, scope) {
   const ownerScope = requireScope(scope); const normalizedEmployeeId = String(employeeId ?? '').trim();
   if (!normalizedEmployeeId) throw new Error('Funcionário é obrigatório para registrar a marcação.');
