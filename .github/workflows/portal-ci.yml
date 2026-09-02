@@ -20,7 +20,7 @@ jobs:
       - name: Check JavaScript syntax
         run: node --check src/api.js && node --check src/main.js && node --check src/point.js && node --check src/point-queue.js && node --check service-worker.js
       - name: Run point queue contract tests
-        run: node tests/point-queue-contract.test.mjs
+        run: node tests/point-queue-contract.test.mjs && node tests/point-receipts-48h-contract.test.mjs
       - name: Validate required portal assets
         run: test -f index.html && test -f privacy.html && test -f point.html && test -f manifest.webmanifest && test -f service-worker.js && test -f src/api.js && test -f src/main.js && test -f src/point.js && test -f src/point-queue.js && test -f src/styles.css
       - name: Validate portal compose overlay
