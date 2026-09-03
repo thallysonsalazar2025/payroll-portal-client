@@ -88,6 +88,7 @@ export async function getPayrollEvents(params) { return request(`${env.eventsEnd
 export async function preValidatePayrollClosing(payload) { return request(env.preValidateClosingEndpoint, { method: 'POST', body: JSON.stringify(payload) }); }
 export async function closePayroll(payload) { return request(env.closePayrollEndpoint, { method: 'POST', body: JSON.stringify(payload) }); }
 export async function syncTimeClockEvents(items) { return request('/api/time-clock/events/sync', { method: 'POST', body: JSON.stringify(items) }); }
+export async function getTimeClockTimesheet(competence, timezone) { return request(`/api/time-clock/timesheet?${new URLSearchParams({ competence, timezone })}`); }
 
 export async function downloadPayrollPdf(params) {
   if (!state.token) throw new Error('Autentique-se antes de baixar o PDF.');
