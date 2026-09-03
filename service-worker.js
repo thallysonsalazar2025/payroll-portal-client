@@ -1,5 +1,5 @@
-const CACHE_NAME = 'payroll-point-shell-v4';
-const SHELL = ['./point.html','./src/styles.css','./src/api.js','./src/point.js','./src/point-queue.js','./manifest.webmanifest'];
+const CACHE_NAME = 'payroll-point-shell-v5';
+const SHELL = ['./point.html','./src/styles.css','./src/api.js','./src/point.js','./src/point-queue.js','./src/timesheet.js','./manifest.webmanifest'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)));
