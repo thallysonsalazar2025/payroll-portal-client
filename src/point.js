@@ -1,12 +1,18 @@
-import { login, syncTimeClockEvents, getAuthenticatedPointScope } from './api.js';
+import { login, syncTimeClockEvents, getAuthenticatedPointScope, getTimeClockTimesheet } from './api.js';
 import { enqueueClockEvent, listClockEvents, syncPendingClockEvents, selectRecentSyncedReceipts, formatReceiptExport } from './point-queue.js';
+import { defaultCompetence, defaultTimezone, formatTimesheet } from './timesheet.js';
 
 const loginForm = document.querySelector('#point-login-form');
 const clockForm = document.querySelector('#clock-form');
+const timesheetForm = document.querySelector('#timesheet-form');
+const timesheetCompetence = document.querySelector('#timesheet-competence');
+const timesheetOutput = document.querySelector('#timesheet-output');
 const queueOutput = document.querySelector('#queue-output');
 const statusOutput = document.querySelector('#point-status');
 const syncButton = document.querySelector('#sync-point-btn');
 const exportButton = document.querySelector('#export-point-receipts-btn');
+
+timesheetCompetence.value = defaultCompetence();
 
 function setStatus(message, type = 'info') { statusOutput.textContent = message; statusOutput.className = `log-${type}`; }
 function scope() { return getAuthenticatedPointScope(); }
@@ -24,6 +30,24 @@ async function renderQueue() {
   if (!authenticatedScope) { queueOutput.textContent = 'Autentique-se para visualizar as marcações deste dispositivo.'; return; }
   const events = await listClockEvents(authenticatedScope);
   queueOutput.textContent = events.length ? events.map(describeEvent).join('\n') : 'Nenhuma marcação registrada para esta sessão.';
+}
+
+async function loadTimesheet() {
+  if (!scope()) {
+    timesheetOutput.textContent = 'Autentique-se para consultar seu espelho.';
+    return setStatus('Autentique-se antes de consultar o espelho.', 'info');
+  }
+  const competence = timesheetCompetence.value;
+  if (!/^\d{4}-\d{2}$/.test(competence)) return setStatus('Informe uma competência válida.', 'info');
+  timesheetOutput.textContent = 'Consultando espelho...';
+  try {
+    const items = await getTimeClockTimesheet(competence, defaultTimezone());
+    timesheetOutput.textContent = formatTimesheet(items);
+    setStatus('Espelho carregado com identidade self-service autenticada.', 'ok');
+  } catch (error) {
+    timesheetOutput.textContent = 'Não foi possível carregar o espelho.';
+    setStatus(error.message, 'err');
+  }
 }
 
 async function syncQueue() {
@@ -71,6 +95,7 @@ clockForm.addEventListener('submit', async event => {
   } catch (error) { setStatus(error.message, 'err'); }
 });
 
+timesheetForm.addEventListener('submit', event => { event.preventDefault(); loadTimesheet(); });
 syncButton.addEventListener('click', syncQueue);
 exportButton.addEventListener('click', () => exportRecentReceipts().catch(error => setStatus(error.message, 'err')));
 window.addEventListener('online', syncQueue);
