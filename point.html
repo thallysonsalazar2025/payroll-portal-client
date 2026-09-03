@@ -15,8 +15,10 @@
       <article class="card"><h2>1. Autenticação</h2><form id="point-login-form"><input name="username" value="admin" required aria-label="Usuário"><input name="password" value="admin" type="password" required aria-label="Senha"><button>Autenticar</button></form></article>
       <article class="card"><h2>2. Registrar marcação</h2><form id="clock-form"><input name="employeeId" value="123" required aria-label="Funcionário"><button>Registrar agora</button></form><p><small>A fila local guarda UUID, funcionário, horário capturado e estado. Não guarda token, senha ou tenant autoritativo.</small></p></article>
       <article class="card"><h2>3. Sincronização e comprovantes</h2><button id="sync-point-btn" type="button">Sincronizar pendências</button> <button id="export-point-receipts-btn" type="button">Extrair comprovantes das últimas 48h</button><p><small>A extração usa somente comprovantes sincronizados disponíveis neste dispositivo; a evidência oficial REP-P será consolidada no backend.</small></p><p id="point-status" aria-live="polite"></p></article>
+      <article class="card"><h2>4. Meu espelho</h2><form id="timesheet-form"><label>Competência <input id="timesheet-competence" name="competence" type="month" required></label><button>Consultar espelho</button></form><p><small>Consulta self-service usando apenas a identidade autenticada validada no Gateway.</small></p></article>
     </section>
     <section class="card"><h2>Marcações locais</h2><pre id="queue-output" aria-live="polite"></pre></section>
+    <section class="card"><h2>Espelho da competência</h2><pre id="timesheet-output" aria-live="polite">Autentique-se para consultar seu espelho.</pre></section>
   </main>
   <script type="module" src="src/point.js"></script>
 </body>
