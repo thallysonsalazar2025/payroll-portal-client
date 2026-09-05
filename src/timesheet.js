@@ -5,8 +5,11 @@ export function normalizeTimesheet(items) {
     const clientEventId = String(item?.clientEventId ?? '').trim();
     const occurredAt = String(item?.occurredAt ?? '').trim();
     const origin = String(item?.origin ?? '').trim();
-    const approvedAdjustmentIds = Array.isArray(item?.approvedAdjustmentIds) ? item.approvedAdjustmentIds.map(String) : [];
-    if (!clientEventId || !occurredAt || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)) {
+    const rawApprovedAdjustmentIds = Array.isArray(item?.approvedAdjustmentIds) ? item.approvedAdjustmentIds : [];
+    const approvedAdjustmentIds = rawApprovedAdjustmentIds.map(id => typeof id === 'string' ? id.trim() : '');
+    if (!clientEventId || !occurredAt || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
+      || approvedAdjustmentIds.some(id => !id)
+      || new Set(approvedAdjustmentIds).size !== approvedAdjustmentIds.length) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
     }
     return { clientEventId, occurredAt, origin, approvedAdjustmentIds };
