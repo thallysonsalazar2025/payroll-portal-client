@@ -1,11 +1,12 @@
 export function normalizeTimesheet(items) {
   if (!Array.isArray(items)) throw new TypeError('Espelho inválido: resposta deve ser uma lista.');
+  const allowedOrigins = new Set(['ORIGINAL', 'AJUSTE_APROVADO', 'AUSENCIA_APROVADA']);
   return items.map((item, index) => {
     const clientEventId = String(item?.clientEventId ?? '').trim();
     const occurredAt = String(item?.occurredAt ?? '').trim();
     const origin = String(item?.origin ?? '').trim();
     const approvedAdjustmentIds = Array.isArray(item?.approvedAdjustmentIds) ? item.approvedAdjustmentIds.map(String) : [];
-    if (!clientEventId || !occurredAt || Number.isNaN(Date.parse(occurredAt)) || !origin) {
+    if (!clientEventId || !occurredAt || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
     }
     return { clientEventId, occurredAt, origin, approvedAdjustmentIds };
