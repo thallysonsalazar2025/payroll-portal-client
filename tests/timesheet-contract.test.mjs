@@ -28,5 +28,9 @@ assert.throws(() => normalizeTimesheet([{ clientEventId: 'x', occurredAt: '2026-
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm1', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [''] }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm2', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [null] }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm3', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: ['adj-1', 'adj-1'] }]), /item 1/);
+assert.throws(() => normalizeTimesheet([
+  { clientEventId: 'dup-1', occurredAt: '2026-09-03T18:00:00Z', origin: 'ORIGINAL' },
+  { clientEventId: 'dup-1', occurredAt: '2026-09-03T19:00:00Z', origin: 'AJUSTE_APROVADO' }
+]), /clientEventId duplicado/);
 
-console.log('timesheet portal effective-origin, adjustment-id and deterministic-order contract: PASS');
+console.log('timesheet portal effective-origin, adjustment-id, duplicate-event and deterministic-order contract: PASS');
