@@ -25,5 +25,8 @@ assert.throws(() => normalizeTimesheet({}), /lista/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: '', occurredAt: 'x', origin: '' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'r', occurredAt: '2026-09-03T15:00:00Z', origin: 'AJUSTE_REJEITADO' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'x', occurredAt: '2026-09-03T16:00:00Z', origin: 'CANCELLED' }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'm1', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [''] }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'm2', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [null] }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'm3', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: ['adj-1', 'adj-1'] }]), /item 1/);
 
-console.log('timesheet portal effective-origin and deterministic-order contract: PASS');
+console.log('timesheet portal effective-origin, adjustment-id and deterministic-order contract: PASS');
