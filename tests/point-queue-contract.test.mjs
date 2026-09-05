@@ -132,4 +132,20 @@ assert.throws(() => indexSyncResults([localEvent], [
 ]), /inconsistente/);
 assert.throws(() => indexSyncResults([localEvent], [{ status: 'CREATED' }]), /inconsistente/);
 
-console.log('point queue payload + tenant-scope isolation + single-flight + failure retry + reconciliation contract: PASS');
+const partialPending = [
+  localEvent,
+  { ...localEvent, clientEventId: '22222222-2222-4222-8222-222222222222', occurredAt: '2026-09-01T03:01:00.000Z' },
+  { ...localEvent, clientEventId: '33333333-3333-4333-8333-333333333333', occurredAt: '2026-09-01T03:02:00.000Z' }
+];
+const partialIndexed = indexSyncResults(partialPending, [
+  { clientEventId: partialPending[0].clientEventId, status: 'CREATED', eventId: 'server-partial-1' },
+  { clientEventId: partialPending[1].clientEventId, status: 'REJECTED', reason: 'Evento fora do contrato aceito.' }
+]);
+const partialReconciled = partialPending.map(event => reconcileSyncResult(event, partialIndexed.get(event.clientEventId), synchronizedAt));
+assert.equal(partialReconciled[0].status, 'SYNCED');
+assert.equal(partialReconciled[1].status, 'REJECTED');
+assert.equal(partialReconciled[1].rejectionReason, 'Evento fora do contrato aceito.');
+assert.equal(partialReconciled[2].status, 'PENDING');
+assert.strictEqual(partialReconciled[2], partialPending[2]);
+
+console.log('point queue payload + tenant-scope isolation + single-flight + failure retry + reconciliation + partial batch contract: PASS');
