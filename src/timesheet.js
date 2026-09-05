@@ -1,7 +1,7 @@
 export function normalizeTimesheet(items) {
   if (!Array.isArray(items)) throw new TypeError('Espelho inválido: resposta deve ser uma lista.');
   const allowedOrigins = new Set(['ORIGINAL', 'AJUSTE_APROVADO', 'AUSENCIA_APROVADA']);
-  return items.map((item, index) => {
+  const normalized = items.map((item, index) => {
     const clientEventId = String(item?.clientEventId ?? '').trim();
     const occurredAt = String(item?.occurredAt ?? '').trim();
     const origin = String(item?.origin ?? '').trim();
@@ -13,7 +13,11 @@ export function normalizeTimesheet(items) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
     }
     return { clientEventId, occurredAt, origin, approvedAdjustmentIds };
-  }).sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.clientEventId.localeCompare(b.clientEventId));
+  });
+  if (new Set(normalized.map(item => item.clientEventId)).size !== normalized.length) {
+    throw new TypeError('Espelho inválido: clientEventId duplicado.');
+  }
+  return normalized.sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.clientEventId.localeCompare(b.clientEventId));
 }
 
 export function defaultCompetence(now = new Date()) {
