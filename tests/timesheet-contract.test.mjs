@@ -8,6 +8,14 @@ const items = normalizeTimesheet([
 ]);
 
 assert.deepEqual(items.map(item => item.clientEventId), ['a', 'b', 'c']);
+
+const tiedTimestampItems = normalizeTimesheet([
+  { clientEventId: 'z', occurredAt: '2026-09-03T15:00:00Z', origin: 'ORIGINAL' },
+  { clientEventId: 'a', occurredAt: '2026-09-03T15:00:00Z', origin: 'ORIGINAL' }
+]);
+assert.deepEqual(tiedTimestampItems.map(item => item.clientEventId), ['a', 'z']);
+assert.deepEqual(normalizeTimesheet([...tiedTimestampItems].reverse()), tiedTimestampItems);
+
 assert.match(formatTimesheet(items), /ORIGINAL/);
 assert.match(formatTimesheet(items), /AJUSTE_APROVADO/);
 assert.match(formatTimesheet(items), /AUSENCIA_APROVADA/);
@@ -18,4 +26,4 @@ assert.throws(() => normalizeTimesheet([{ clientEventId: '', occurredAt: 'x', or
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'r', occurredAt: '2026-09-03T15:00:00Z', origin: 'AJUSTE_REJEITADO' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'x', occurredAt: '2026-09-03T16:00:00Z', origin: 'CANCELLED' }]), /item 1/);
 
-console.log('timesheet portal effective-origin contract: PASS');
+console.log('timesheet portal effective-origin and deterministic-order contract: PASS');

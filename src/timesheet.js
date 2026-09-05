@@ -10,7 +10,7 @@ export function normalizeTimesheet(items) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
     }
     return { clientEventId, occurredAt, origin, approvedAdjustmentIds };
-  }).sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
+  }).sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.clientEventId.localeCompare(b.clientEventId));
 }
 
 export function defaultCompetence(now = new Date()) {
