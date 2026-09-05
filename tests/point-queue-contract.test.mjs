@@ -19,6 +19,29 @@ assert.deepEqual(toSyncPayload(localEvent), {
 });
 assert.deepEqual(Object.keys(toSyncPayload(localEvent)).sort(), ['clientEventId', 'employeeId', 'occurredAt'].sort());
 
+let releaseTenantA;
+let releaseTenantB;
+let tenantACalls = 0;
+let tenantBCalls = 0;
+const tenantAFlight = runSingleFlight('tenant-a:user-1', async () => {
+  tenantACalls += 1;
+  await new Promise(resolve => { releaseTenantA = resolve; });
+  return 'tenant-a-result';
+});
+const tenantBFlight = runSingleFlight('tenant-b:user-1', async () => {
+  tenantBCalls += 1;
+  await new Promise(resolve => { releaseTenantB = resolve; });
+  return 'tenant-b-result';
+});
+await Promise.resolve();
+assert.equal(tenantACalls, 1);
+assert.equal(tenantBCalls, 1);
+assert.notStrictEqual(tenantAFlight, tenantBFlight);
+releaseTenantA();
+releaseTenantB();
+assert.equal(await tenantAFlight, 'tenant-a-result');
+assert.equal(await tenantBFlight, 'tenant-b-result');
+
 let releaseFirstFlight;
 let operationCalls = 0;
 const firstFlight = runSingleFlight('tenant-a:user-1', async () => {
@@ -109,4 +132,4 @@ assert.throws(() => indexSyncResults([localEvent], [
 ]), /inconsistente/);
 assert.throws(() => indexSyncResults([localEvent], [{ status: 'CREATED' }]), /inconsistente/);
 
-console.log('point queue payload + single-flight + failure retry + reconciliation contract: PASS');
+console.log('point queue payload + tenant-scope isolation + single-flight + failure retry + reconciliation contract: PASS');
