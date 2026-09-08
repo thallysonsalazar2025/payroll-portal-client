@@ -28,6 +28,7 @@ assert.throws(() => normalizeTimesheet([{ clientEventId: 'x', occurredAt: '2026-
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'local-date', occurredAt: '09/03/2026 15:00', origin: 'ORIGINAL' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'no-zone', occurredAt: '2026-09-03T15:00:00', origin: 'ORIGINAL' }]), /item 1/);
 assert.deepEqual(normalizeTimesheet([{ clientEventId: 'offset', occurredAt: '2026-09-03T12:00:00-03:00', origin: 'ORIGINAL' }])[0].occurredAt, '2026-09-03T12:00:00-03:00');
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'm0', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: 'adj-1' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm1', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [''] }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm2', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [null] }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm3', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: ['adj-1', 'adj-1'] }]), /item 1/);
