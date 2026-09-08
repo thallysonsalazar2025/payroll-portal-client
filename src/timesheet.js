@@ -6,7 +6,11 @@ export function normalizeTimesheet(items) {
     const clientEventId = String(item?.clientEventId ?? '').trim();
     const occurredAt = String(item?.occurredAt ?? '').trim();
     const origin = String(item?.origin ?? '').trim();
-    const rawApprovedAdjustmentIds = Array.isArray(item?.approvedAdjustmentIds) ? item.approvedAdjustmentIds : [];
+    const hasApprovedAdjustmentIds = item != null && Object.prototype.hasOwnProperty.call(item, 'approvedAdjustmentIds');
+    if (hasApprovedAdjustmentIds && !Array.isArray(item.approvedAdjustmentIds)) {
+      throw new TypeError(`Espelho inválido no item ${index + 1}.`);
+    }
+    const rawApprovedAdjustmentIds = item?.approvedAdjustmentIds ?? [];
     const approvedAdjustmentIds = rawApprovedAdjustmentIds.map(id => typeof id === 'string' ? id.trim() : '');
     if (!clientEventId || !isoInstantWithZone.test(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
       || approvedAdjustmentIds.some(id => !id)
