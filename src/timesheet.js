@@ -16,16 +16,18 @@ export function normalizeTimesheet(items) {
   };
   const normalized = items.map((item, index) => {
     const rawClientEventId = item?.clientEventId;
+    const rawOccurredAt = item?.occurredAt;
+    const rawOrigin = item?.origin;
     const clientEventId = typeof rawClientEventId === 'string' ? rawClientEventId.trim() : '';
-    const occurredAt = String(item?.occurredAt ?? '').trim();
-    const origin = String(item?.origin ?? '').trim();
+    const occurredAt = typeof rawOccurredAt === 'string' ? rawOccurredAt.trim() : '';
+    const origin = typeof rawOrigin === 'string' ? rawOrigin.trim() : '';
     const hasApprovedAdjustmentIds = item != null && Object.prototype.hasOwnProperty.call(item, 'approvedAdjustmentIds');
     if (hasApprovedAdjustmentIds && !Array.isArray(item.approvedAdjustmentIds)) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
     }
     const rawApprovedAdjustmentIds = item?.approvedAdjustmentIds ?? [];
     const approvedAdjustmentIds = rawApprovedAdjustmentIds.map(id => typeof id === 'string' && id === id.trim() ? id : '');
-    if (!clientEventId || rawClientEventId !== clientEventId || hasControlChars(clientEventId) || !hasValidCalendarDate(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
+    if (!clientEventId || rawClientEventId !== clientEventId || rawOccurredAt !== occurredAt || rawOrigin !== origin || hasControlChars(clientEventId) || !hasValidCalendarDate(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
       || approvedAdjustmentIds.some(id => !id || hasControlChars(id))
       || new Set(approvedAdjustmentIds).size !== approvedAdjustmentIds.length) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
