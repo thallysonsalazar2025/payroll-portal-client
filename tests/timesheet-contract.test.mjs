@@ -45,9 +45,12 @@ assert.throws(() => normalizeTimesheet([{ clientEventId: 'strict-time-type', occ
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'padded-time', occurredAt: ' 2026-09-03T17:00:00Z ', origin: 'ORIGINAL' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'strict-origin-type', occurredAt: '2026-09-03T17:00:00Z', origin: { toString: () => 'ORIGINAL' } }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'padded-origin', occurredAt: '2026-09-03T17:00:00Z', origin: ' ORIGINAL ' }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'missing-adjustment-id', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO' }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'original-with-adjustment', occurredAt: '2026-09-03T17:00:00Z', origin: 'ORIGINAL', approvedAdjustmentIds: ['adj-1'] }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'absence-with-adjustment', occurredAt: '2026-09-03T17:00:00Z', origin: 'AUSENCIA_APROVADA', approvedAdjustmentIds: ['adj-1'] }]), /item 1/);
 assert.throws(() => normalizeTimesheet([
   { clientEventId: 'dup-1', occurredAt: '2026-09-03T18:00:00Z', origin: 'ORIGINAL' },
-  { clientEventId: 'dup-1', occurredAt: '2026-09-03T19:00:00Z', origin: 'AJUSTE_APROVADO' }
+  { clientEventId: 'dup-1', occurredAt: '2026-09-03T19:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: ['adj-2'] }
 ]), /clientEventId duplicado/);
 
-console.log('timesheet strict-id, strict timestamp/origin type, ISO timestamp, calendar-validity, effective-origin, adjustment-id, control-character, duplicate-event and deterministic-order contract: PASS');
+console.log('timesheet strict-id, strict timestamp/origin type, ISO timestamp, calendar-validity, effective-origin, adjustment-id semantic consistency, control-character, duplicate-event and deterministic-order contract: PASS');
