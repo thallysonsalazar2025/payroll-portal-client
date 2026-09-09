@@ -1,8 +1,19 @@
 export function normalizeTimesheet(items) {
   if (!Array.isArray(items)) throw new TypeError('Espelho inválido: resposta deve ser uma lista.');
   const allowedOrigins = new Set(['ORIGINAL', 'AJUSTE_APROVADO', 'AUSENCIA_APROVADA']);
-  const isoInstantWithZone = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+  const isoInstantWithZone = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
   const hasControlChars = value => /[\u0000-\u001F\u007F]/.test(value);
+  const hasValidCalendarDate = value => {
+    const match = isoInstantWithZone.exec(value);
+    if (!match) return false;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (month < 1 || month > 12 || day < 1) return false;
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return day <= daysInMonth[month - 1];
+  };
   const normalized = items.map((item, index) => {
     const clientEventId = String(item?.clientEventId ?? '').trim();
     const occurredAt = String(item?.occurredAt ?? '').trim();
@@ -13,7 +24,7 @@ export function normalizeTimesheet(items) {
     }
     const rawApprovedAdjustmentIds = item?.approvedAdjustmentIds ?? [];
     const approvedAdjustmentIds = rawApprovedAdjustmentIds.map(id => typeof id === 'string' ? id.trim() : '');
-    if (!clientEventId || hasControlChars(clientEventId) || !isoInstantWithZone.test(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
+    if (!clientEventId || hasControlChars(clientEventId) || !hasValidCalendarDate(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
       || approvedAdjustmentIds.some(id => !id || hasControlChars(id))
       || new Set(approvedAdjustmentIds).size !== approvedAdjustmentIds.length) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);

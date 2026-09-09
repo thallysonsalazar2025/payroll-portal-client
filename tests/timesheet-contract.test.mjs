@@ -28,6 +28,9 @@ assert.throws(() => normalizeTimesheet([{ clientEventId: 'x', occurredAt: '2026-
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'local-date', occurredAt: '09/03/2026 15:00', origin: 'ORIGINAL' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'no-zone', occurredAt: '2026-09-03T15:00:00', origin: 'ORIGINAL' }]), /item 1/);
 assert.deepEqual(normalizeTimesheet([{ clientEventId: 'offset', occurredAt: '2026-09-03T12:00:00-03:00', origin: 'ORIGINAL' }])[0].occurredAt, '2026-09-03T12:00:00-03:00');
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'feb-30', occurredAt: '2026-02-30T12:00:00Z', origin: 'ORIGINAL' }]), /item 1/);
+assert.throws(() => normalizeTimesheet([{ clientEventId: 'non-leap', occurredAt: '2025-02-29T12:00:00Z', origin: 'ORIGINAL' }]), /item 1/);
+assert.deepEqual(normalizeTimesheet([{ clientEventId: 'leap', occurredAt: '2024-02-29T12:00:00Z', origin: 'ORIGINAL' }])[0].occurredAt, '2024-02-29T12:00:00Z');
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm0', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: 'adj-1' }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm1', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [''] }]), /item 1/);
 assert.throws(() => normalizeTimesheet([{ clientEventId: 'm2', occurredAt: '2026-09-03T17:00:00Z', origin: 'AJUSTE_APROVADO', approvedAdjustmentIds: [null] }]), /item 1/);
@@ -40,4 +43,4 @@ assert.throws(() => normalizeTimesheet([
   { clientEventId: 'dup-1', occurredAt: '2026-09-03T19:00:00Z', origin: 'AJUSTE_APROVADO' }
 ]), /clientEventId duplicado/);
 
-console.log('timesheet portal ISO timestamp, effective-origin, adjustment-id, control-character, duplicate-event and deterministic-order contract: PASS');
+console.log('timesheet portal ISO timestamp, calendar-validity, effective-origin, adjustment-id, control-character, duplicate-event and deterministic-order contract: PASS');
