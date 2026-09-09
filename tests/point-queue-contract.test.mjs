@@ -18,6 +18,10 @@ assert.deepEqual(toSyncPayload(localEvent), {
   occurredAt: localEvent.occurredAt
 });
 assert.deepEqual(Object.keys(toSyncPayload(localEvent)).sort(), ['clientEventId', 'employeeId', 'occurredAt'].sort());
+assert.throws(() => toSyncPayload({ ...localEvent, clientEventId: 'evt\nforged' }), /inválida/);
+assert.throws(() => toSyncPayload({ ...localEvent, employeeId: 'emp\u0000forged' }), /inválida/);
+assert.throws(() => toSyncPayload({ ...localEvent, occurredAt: 'not-a-date' }), /inválida/);
+assert.throws(() => runSingleFlight('tenant-a:user\rforged', async () => 'never'), /Autentique-se/);
 
 let releaseTenantA;
 let releaseTenantB;

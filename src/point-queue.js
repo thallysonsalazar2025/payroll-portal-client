@@ -3,9 +3,11 @@ const STORE_NAME = 'clock-events';
 const DB_VERSION = 1;
 const syncFlights = new Map();
 
+function hasControlChars(value) { return /[\u0000-\u001F\u007F]/.test(value); }
+
 function requireScope(scope) {
   const normalized = String(scope ?? '').trim();
-  if (!normalized) throw new Error('Autentique-se antes de acessar marcações deste dispositivo.');
+  if (!normalized || hasControlChars(normalized)) throw new Error('Autentique-se antes de acessar marcações deste dispositivo.');
   return normalized;
 }
 
@@ -37,7 +39,12 @@ export function runSingleFlight(scope, operation) {
 }
 
 export function toSyncPayload(event) {
-  const { clientEventId, employeeId, occurredAt } = event ?? {};
+  const clientEventId = typeof event?.clientEventId === 'string' ? event.clientEventId.trim() : '';
+  const employeeId = typeof event?.employeeId === 'string' ? event.employeeId.trim() : '';
+  const occurredAt = typeof event?.occurredAt === 'string' ? event.occurredAt.trim() : '';
+  if (!clientEventId || !employeeId || !occurredAt || hasControlChars(clientEventId) || hasControlChars(employeeId) || hasControlChars(occurredAt) || !Number.isFinite(Date.parse(occurredAt))) {
+    throw new Error('Marcação local inválida para sincronização.');
+  }
   return { clientEventId, employeeId, occurredAt };
 }
 
@@ -103,7 +110,7 @@ export function formatReceiptExport(events) {
 
 export async function enqueueClockEvent(employeeId, scope) {
   const ownerScope = requireScope(scope); const normalizedEmployeeId = String(employeeId ?? '').trim();
-  if (!normalizedEmployeeId) throw new Error('Funcionário é obrigatório para registrar a marcação.');
+  if (!normalizedEmployeeId || hasControlChars(normalizedEmployeeId)) throw new Error('Funcionário é obrigatório para registrar a marcação.');
   const event = { clientEventId: crypto.randomUUID(), employeeId: normalizedEmployeeId, occurredAt: new Date().toISOString(), status: 'PENDING', ownerScope };
   await transaction('readwrite', store => store.add(event)); return event;
 }
