@@ -27,9 +27,11 @@ export function normalizeTimesheet(items) {
     }
     const rawApprovedAdjustmentIds = item?.approvedAdjustmentIds ?? [];
     const approvedAdjustmentIds = rawApprovedAdjustmentIds.map(id => typeof id === 'string' && id === id.trim() ? id : '');
+    const hasAdjustmentOriginMismatch = origin === 'AJUSTE_APROVADO' ? approvedAdjustmentIds.length === 0 : approvedAdjustmentIds.length > 0;
     if (!clientEventId || rawClientEventId !== clientEventId || rawOccurredAt !== occurredAt || rawOrigin !== origin || hasControlChars(clientEventId) || !hasValidCalendarDate(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
       || approvedAdjustmentIds.some(id => !id || hasControlChars(id))
-      || new Set(approvedAdjustmentIds).size !== approvedAdjustmentIds.length) {
+      || new Set(approvedAdjustmentIds).size !== approvedAdjustmentIds.length
+      || hasAdjustmentOriginMismatch) {
       throw new TypeError(`Espelho inválido no item ${index + 1}.`);
     }
     return { clientEventId, occurredAt, origin, approvedAdjustmentIds };
