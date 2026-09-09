@@ -41,8 +41,9 @@ async function loadTimesheet() {
   if (!/^\d{4}-\d{2}$/.test(competence)) return setStatus('Informe uma competência válida.', 'info');
   timesheetOutput.textContent = 'Consultando espelho...';
   try {
-    const items = await getTimeClockTimesheet(competence, defaultTimezone());
-    timesheetOutput.textContent = formatTimesheet(items);
+    const timeZone = defaultTimezone();
+    const items = await getTimeClockTimesheet(competence, timeZone);
+    timesheetOutput.textContent = formatTimesheet(items, 'pt-BR', timeZone);
     setStatus('Espelho carregado com identidade self-service autenticada.', 'ok');
   } catch (error) {
     timesheetOutput.textContent = 'Não foi possível carregar o espelho.';

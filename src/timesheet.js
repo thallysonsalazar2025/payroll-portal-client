@@ -51,11 +51,16 @@ export function defaultTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 }
 
-export function formatTimesheet(items, locale = 'pt-BR') {
+export function formatTimesheet(items, locale = 'pt-BR', timeZone = defaultTimezone()) {
   const normalized = normalizeTimesheet(items);
   if (!normalized.length) return 'Nenhuma marcação encontrada para a competência.';
+  const formatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+    timeZone
+  });
   return normalized.map(item => {
-    const timestamp = new Date(item.occurredAt).toLocaleString(locale);
+    const timestamp = formatter.format(new Date(item.occurredAt));
     const adjustments = item.approvedAdjustmentIds.length ? ` — ajustes aprovados: ${item.approvedAdjustmentIds.join(', ')}` : '';
     return `${timestamp} — ${item.origin} — ${item.clientEventId}${adjustments}`;
   }).join('\n');
