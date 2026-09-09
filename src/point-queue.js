@@ -12,7 +12,8 @@ function isStrictIsoInstant(value) {
   const year = Number(yearText); const month = Number(monthText); const day = Number(dayText);
   const hour = Number(hourText); const minute = Number(minuteText); const second = Number(secondText);
   if (month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return false;
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
   if (day < 1 || day > daysInMonth) return false;
   if (zone !== 'Z') {
     const zoneHour = Number(zone.slice(1, 3)); const zoneMinute = Number(zone.slice(4, 6));
