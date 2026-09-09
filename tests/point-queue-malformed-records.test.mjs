@@ -23,6 +23,7 @@ for (const occurredAt of [
   '0',
   '2026-09-09',
   '2026-02-31T10:00:00Z',
+  '2026-02-29T00:00:00Z',
   '2026-09-09T25:00:00Z',
   '2026-09-09T10:00:00+24:00',
   ' 2026-09-09T10:00:00Z'
@@ -33,6 +34,10 @@ for (const occurredAt of [
 assert.equal(
   toSyncPayload({ ...valid, occurredAt: '2026-09-09T12:37:55-03:00' }).occurredAt,
   '2026-09-09T12:37:55-03:00'
+);
+assert.equal(
+  toSyncPayload({ ...valid, occurredAt: '2024-02-29T00:00:00Z' }).occurredAt,
+  '2024-02-29T00:00:00Z'
 );
 
 const malformed = { ...valid, clientEventId: ` ${valid.clientEventId}` };
