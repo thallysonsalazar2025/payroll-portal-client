@@ -14,14 +14,18 @@ for (const occurredAt of [
   '2026-09-03T23:60:00Z',
   '2026-09-03T23:59:60Z',
   '2026-09-03T12:00:00+24:00',
+  '2026-09-03T12:00:00+18:01',
+  '2026-09-03T12:00:00+23:59',
   '2026-09-03T12:00:00+03:60'
 ]) {
   assert.throws(() => normalizeTimesheet([{ ...valid, occurredAt }]), /item 1/);
 }
 
-assert.equal(
-  normalizeTimesheet([{ ...valid, clientEventId: 'valid-offset', occurredAt: '2026-09-03T12:00:00-03:00' }])[0].occurredAt,
-  '2026-09-03T12:00:00-03:00'
-);
+for (const occurredAt of ['2026-09-03T12:00:00-03:00', '2026-09-03T12:00:00+18:00']) {
+  assert.equal(
+    normalizeTimesheet([{ ...valid, clientEventId: occurredAt, occurredAt }])[0].occurredAt,
+    occurredAt
+  );
+}
 
-console.log('timesheet strict clock and timezone-offset contract: PASS');
+console.log('timesheet strict clock and Java-compatible timezone-offset contract: PASS');
