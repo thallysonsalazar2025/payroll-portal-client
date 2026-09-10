@@ -125,8 +125,9 @@ export function indexSyncResults(pendingEvents, results) {
   const pendingIds = new Set((pendingEvents ?? []).map(event => event?.clientEventId).filter(Boolean));
   const byId = new Map();
   for (const result of results) {
-    const clientEventId = typeof result?.clientEventId === 'string' ? result.clientEventId.trim() : '';
-    if (!clientEventId || !pendingIds.has(clientEventId) || byId.has(clientEventId)) {
+    const rawClientEventId = typeof result?.clientEventId === 'string' ? result.clientEventId : '';
+    const clientEventId = rawClientEventId.trim();
+    if (!clientEventId || rawClientEventId !== clientEventId || hasControlChars(clientEventId) || !pendingIds.has(clientEventId) || byId.has(clientEventId)) {
       throw new Error('Resposta de sincronização inconsistente.');
     }
     byId.set(clientEventId, result);
