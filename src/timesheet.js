@@ -1,18 +1,28 @@
 export function normalizeTimesheet(items) {
   if (!Array.isArray(items)) throw new TypeError('Espelho inválido: resposta deve ser uma lista.');
   const allowedOrigins = new Set(['ORIGINAL', 'AJUSTE_APROVADO', 'AUSENCIA_APROVADA']);
-  const isoInstantWithZone = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+  const isoInstantWithZone = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
   const hasControlChars = value => /[\u0000-\u001F\u007F]/.test(value);
-  const hasValidCalendarDate = value => {
+  const isStrictIsoInstant = value => {
     const match = isoInstantWithZone.exec(value);
     if (!match) return false;
     const year = Number(match[1]);
     const month = Number(match[2]);
     const day = Number(match[3]);
-    if (month < 1 || month > 12 || day < 1) return false;
+    const hour = Number(match[4]);
+    const minute = Number(match[5]);
+    const second = Number(match[6]);
+    const zone = match[7];
+    if (month < 1 || month > 12 || day < 1 || hour > 23 || minute > 59 || second > 59) return false;
     const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    return day <= daysInMonth[month - 1];
+    if (day > daysInMonth[month - 1]) return false;
+    if (zone !== 'Z') {
+      const zoneHour = Number(zone.slice(1, 3));
+      const zoneMinute = Number(zone.slice(4, 6));
+      if (zoneHour > 18 || zoneMinute > 59 || (zoneHour === 18 && zoneMinute !== 0)) return false;
+    }
+    return Number.isFinite(Date.parse(value));
   };
   const normalized = items.map((item, index) => {
     const rawClientEventId = item?.clientEventId;
@@ -28,7 +38,7 @@ export function normalizeTimesheet(items) {
     const rawApprovedAdjustmentIds = item?.approvedAdjustmentIds ?? [];
     const approvedAdjustmentIds = rawApprovedAdjustmentIds.map(id => typeof id === 'string' && id === id.trim() ? id : '');
     const hasAdjustmentOriginMismatch = origin === 'AJUSTE_APROVADO' ? approvedAdjustmentIds.length === 0 : approvedAdjustmentIds.length > 0;
-    if (!clientEventId || rawClientEventId !== clientEventId || rawOccurredAt !== occurredAt || rawOrigin !== origin || hasControlChars(clientEventId) || !hasValidCalendarDate(occurredAt) || Number.isNaN(Date.parse(occurredAt)) || !allowedOrigins.has(origin)
+    if (!clientEventId || rawClientEventId !== clientEventId || rawOccurredAt !== occurredAt || rawOrigin !== origin || hasControlChars(clientEventId) || !isStrictIsoInstant(occurredAt) || !allowedOrigins.has(origin)
       || approvedAdjustmentIds.some(id => !id || hasControlChars(id))
       || new Set(approvedAdjustmentIds).size !== approvedAdjustmentIds.length
       || hasAdjustmentOriginMismatch) {
