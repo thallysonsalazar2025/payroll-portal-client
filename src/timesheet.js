@@ -20,7 +20,7 @@ export function normalizeTimesheet(items) {
     if (zone !== 'Z') {
       const zoneHour = Number(zone.slice(1, 3));
       const zoneMinute = Number(zone.slice(4, 6));
-      if (zoneHour > 23 || zoneMinute > 59) return false;
+      if (zoneHour > 18 || zoneMinute > 59 || (zoneHour === 18 && zoneMinute !== 0)) return false;
     }
     return Number.isFinite(Date.parse(value));
   };
