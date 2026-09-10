@@ -140,9 +140,9 @@ export function selectRecentSyncedReceipts(events, now = new Date(), hours = 48)
   if (!Number.isFinite(nowMs)) throw new Error('Horário de referência inválido.');
   const windowMs = hours * 60 * 60 * 1000;
   return (events ?? []).filter(event => {
-    if (event?.status !== 'SYNCED') return false;
+    if (event?.status !== 'SYNCED' || typeof event.occurredAt !== 'string' || !isStrictIsoInstant(event.occurredAt) || hasControlChars(event.occurredAt)) return false;
     const occurredAtMs = Date.parse(event.occurredAt);
-    return Number.isFinite(occurredAtMs) && occurredAtMs <= nowMs && occurredAtMs >= nowMs - windowMs;
+    return occurredAtMs <= nowMs && occurredAtMs >= nowMs - windowMs;
   });
 }
 
