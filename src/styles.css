@@ -7,8 +7,8 @@
   --border: #2a3954;
   --text: #f4f7fb;
   --muted: #a9b6ca;
-  --primary: #4f7cff;
-  --primary-hover: #6b91ff;
+  --primary: #315bd2;
+  --primary-hover: #2449b3;
   --focus: #93b4ff;
   --success: #86efac;
   --danger: #fca5a5;
@@ -50,7 +50,7 @@ input, button {
   border: 1px solid var(--border);
   font: inherit;
 }
-input { background: #0d1728; color: var(--text); outline: none; }
+input { background: #0d1728; color: var(--text); }
 input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(147,180,255,.16); }
 button {
   cursor: pointer;
