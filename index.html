@@ -7,11 +7,17 @@
   <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#app">Ir para o conteúdo principal</a>
   <header>
-    <h1>Payroll Portal Client (E2E)</h1>
+    <h1>Portal Holerite</h1>
+    <nav aria-label="Navegação principal">
+      <a href="index.html" aria-current="page">Holerite</a>
+      <a href="point.html">Ponto eletrônico</a>
+      <a href="privacy.html">Privacidade</a>
+    </nav>
     <p>Fluxo de ponta a ponta para geração de folha com integração entre serviços.</p>
   </header>
-  <main id="app"></main>
+  <main id="app" tabindex="-1" aria-label="Operações de holerite"></main>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
