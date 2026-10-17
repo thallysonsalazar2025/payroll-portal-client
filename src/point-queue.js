@@ -146,13 +146,18 @@ export function selectRecentSyncedReceipts(events, now = new Date(), hours = 48)
   });
 }
 
+function safeTsvCell(value) {
+  const cell = String(value ?? '').replace(/[\u0000-\u001F\u007F\u2028\u2029]/g, ' ');
+  return /^\s*[=+\-@]/u.test(cell) ? `'${cell}` : cell;
+}
+
 export function formatReceiptExport(events) {
   return (events ?? []).map(event => [
     event.occurredAt,
     event.receiptId ?? event.clientEventId,
     event.serverStatus ?? '',
     event.serverReceivedAt ?? ''
-  ].join('\t')).join('\n');
+  ].map(safeTsvCell).join('\t')).join('\n');
 }
 
 export async function enqueueClockEvent(employeeId, scope) {
